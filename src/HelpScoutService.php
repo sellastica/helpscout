@@ -67,7 +67,12 @@ class HelpScoutService
 		$thread->setBody($body);
 		$thread->setCreatedBy($conversation->getCustomer());
 		$thread->setStatus(\HelpScout\model\Conversation::STATUS_ACTIVE);
-		$conversation->addLineItem($thread);
-		$this->helpScout->createConversation($conversation, false, $autoreply);
+
+		if ($conversation->getId()) {
+			$this->helpScout->createThread($conversation->getId(), $thread);
+		} else {
+			$conversation->addLineItem($thread);
+			$this->helpScout->createConversation($conversation, false, $autoreply);
+		}
 	}
 }
