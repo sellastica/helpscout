@@ -75,4 +75,21 @@ class HelpScoutService
 			$this->helpScout->createConversation($conversation, false, $autoreply);
 		}
 	}
+
+	/**
+	 * @param \HelpScout\model\Conversation $conversation
+	 * @param string $body
+	 */
+	public function createMessageForCustomer(
+		\HelpScout\model\Conversation $conversation,
+		string $body
+	): void
+	{
+		$thread = new \HelpScout\model\thread\Message();
+		$thread->setBody($body);
+		$thread->setCreatedBy($this->helpScout->getUserMe()->toRef());
+		$thread->setStatus(\HelpScout\model\Conversation::STATUS_CLOSED);
+		$conversation->addLineItem($thread);
+		$this->helpScout->createConversation($conversation);
+	}
 }
