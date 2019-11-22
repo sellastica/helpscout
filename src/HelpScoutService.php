@@ -3,15 +3,22 @@ namespace Sellastica\HelpScout;
 
 class HelpScoutService
 {
-	/** @var \HelpScout\ApiClient */
+	/** @var array */
+	private $parameters;
+	/** @var \HelpScout\Api\ApiClient */
 	private $helpScout;
 
 
 	/**
+	 * @param array $parameters
 	 * @param HelpScoutApiFactory $helpScoutApiFactory
 	 */
-	public function __construct(HelpScoutApiFactory $helpScoutApiFactory)
+	public function __construct(
+		array $parameters,
+		HelpScoutApiFactory $helpScoutApiFactory
+	)
 	{
+		$this->parameters = $parameters;
 		$this->helpScout = $helpScoutApiFactory->create();
 	}
 
@@ -22,7 +29,7 @@ class HelpScoutService
 	 * @param string|null $firstName
 	 * @param string|null $lastName
 	 * @param string|null $phone
-	 * @return \HelpScout\model\Conversation
+	 * @return \HelpScout\Api\Conversations\Conversation
 	 */
 	public function createConversation(
 		int $mailboxId,
@@ -31,65 +38,63 @@ class HelpScoutService
 		string $firstName = null,
 		string $lastName = null,
 		string $phone = null
-	): \HelpScout\model\Conversation
+	): \HelpScout\Api\Conversations\Conversation
 	{
-		//create ticket
-		$conversation = new \HelpScout\model\Conversation();
+		$conversation = new \HelpScout\Api\Conversations\Conversation();
 		$conversation->setSubject($subject);
 		$conversation->setType('email');
-		$conversation->setStatus(\HelpScout\model\Conversation::STATUS_ACTIVE);
+		$conversation->setStatus(\HelpScout\Api\Conversations\Conversation::STATUS_ACTIVE);
+		$conversation->setMailboxId($mailboxId);
 
-		//the mailbox associated with the conversation
-		$conversation->setMailbox($this->helpScout->getMailboxProxy($mailboxId));
-
-		$customer = $this->helpScout->getCustomerRefProxy(null, $email);
+		$customer = new \HelpScout\Api\Customers\Customer();
 		$customer->setFirstName($firstName);
 		$customer->setLastName($lastName);
-		$customer->setPhone($phone);
+		$customer->addEmail($email);
+		$customer->addPhone($phone);
 		$conversation->setCustomer($customer);
-		$conversation->setCreatedBy($customer);
+		$conversation->setCreatedByCustomer($customer);
 
 		return $conversation;
 	}
 
 	/**
-	 * @param \HelpScout\model\Conversation $conversation
+	 * @param \HelpScout\Api\Conversations\Conversation $conversation
 	 * @param string $body
-	 * @param bool $autoreply
+	 * @throws \HelpScout\Api\Exception\Exception
 	 */
 	public function createMessageForSupport(
-		\HelpScout\model\Conversation $conversation,
-		string $body,
-		bool $autoreply = false
+		\HelpScout\Api\Conversations\Conversation $conversation,
+		string $body
 	): void
 	{
-		$thread = new \HelpScout\model\thread\Customer();
-		$thread->setBody($body);
-		$thread->setCreatedBy($conversation->getCustomer());
-		$thread->setStatus(\HelpScout\model\Conversation::STATUS_ACTIVE);
+		$thread = new \HelpScout\Api\Conversations\Threads\CustomerThread();
+		$thread->setCustomer($conversation->getCustomer());
+		$thread->setText($body);
+		$thread->setCreatedByCustomer($conversation->getCustomer());
 
-		if ($conversation->getId()) {
-			$this->helpScout->createThread($conversation->getId(), $thread);
-		} else {
-			$conversation->addLineItem($thread);
-			$this->helpScout->createConversation($conversation, false, $autoreply);
+		$conversation->addThread($thread);
+		if (!$conversation->getId()) {
+			$this->helpScout->conversations()->create($conversation);
 		}
 	}
 
 	/**
-	 * @param \HelpScout\model\Conversation $conversation
+	 * @param \HelpScout\Api\Conversations\Conversation $conversation
 	 * @param string $body
 	 */
 	public function createMessageForCustomer(
-		\HelpScout\model\Conversation $conversation,
+		\HelpScout\Api\Conversations\Conversation $conversation,
 		string $body
 	): void
 	{
-		$thread = new \HelpScout\model\thread\Message();
-		$thread->setBody($body);
-		$thread->setCreatedBy($this->helpScout->getUserMe()->toRef());
-		$thread->setStatus(\HelpScout\model\Conversation::STATUS_CLOSED);
-		$conversation->addLineItem($thread);
-		$this->helpScout->createConversation($conversation);
+		$user = new \HelpScout\Api\Users\User();
+		$user->setId($this->parameters['user_id']);
+
+		$thread = new \HelpScout\Api\Conversations\Threads\CustomerThread();
+		$thread->setText($body);
+		$thread->setCreatedByUser($user);
+
+		$conversation->addThread($thread);
+		$this->helpScout->conversations()->create($conversation);
 	}
 }

@@ -4,24 +4,28 @@ namespace Sellastica\HelpScout;
 class HelpScoutApiFactory
 {
 	/** @var string */
-	private $apiKey;
+	private $appId;
+	/** @var string */
+	private $appSecret;
 
 
 	/**
-	 * @param string $apiKey
+	 * @param string $appId
+	 * @param string $appSecret
 	 */
-	public function __construct(string $apiKey)
+	public function __construct(string $appId, string $appSecret)
 	{
-		$this->apiKey = $apiKey;
+		$this->appId = $appId;
+		$this->appSecret = $appSecret;
 	}
 
 	/**
-	 * @return \HelpScout\ApiClient
+	 * @return \HelpScout\Api\ApiClient
 	 */
-	public function create(): \HelpScout\ApiClient
+	public function create(): \HelpScout\Api\ApiClient
 	{
-		$client = \HelpScout\ApiClient::getInstance();
-		$client->setKey($this->apiKey);
+		$client = \HelpScout\Api\ApiClientFactory::createClient();
+		$client->useClientCredentials($this->appId, $this->appSecret);
 
 		return $client;
 	}
