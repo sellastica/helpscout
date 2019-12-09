@@ -50,7 +50,10 @@ class HelpScoutService
 		$customer->setFirstName($firstName);
 		$customer->setLastName($lastName);
 		$customer->addEmail($email);
-		$customer->addPhone($phone);
+		if ($phone) {
+			$customer->addPhone($phone);
+		}
+
 		$conversation->setCustomer($customer);
 		$conversation->setCreatedByCustomer($customer);
 
