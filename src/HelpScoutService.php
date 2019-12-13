@@ -77,7 +77,8 @@ class HelpScoutService
 
 		$conversation->addThread($thread);
 		if (!$conversation->getId()) {
-			$this->helpScout->conversations()->create($conversation);
+			$conversationId = $this->helpScout->conversations()->create($conversation);
+			$conversation->setId($conversationId);
 		}
 	}
 
@@ -98,6 +99,7 @@ class HelpScoutService
 		$thread->setCreatedByUser($user);
 
 		$conversation->addThread($thread);
-		$this->helpScout->conversations()->create($conversation);
+		$conversationId = $this->helpScout->conversations()->create($conversation);
+		$conversation->setId($conversationId);
 	}
 }
