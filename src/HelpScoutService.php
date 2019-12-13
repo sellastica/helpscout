@@ -75,11 +75,7 @@ class HelpScoutService
 		$thread->setText($body);
 		$thread->setCreatedByCustomer($conversation->getCustomer());
 
-		$conversation->addThread($thread);
-		if (!$conversation->getId()) {
-			$conversationId = $this->helpScout->conversations()->create($conversation);
-			$conversation->setId($conversationId);
-		}
+		$this->createThread($conversation, $thread);
 	}
 
 	/**
@@ -98,8 +94,25 @@ class HelpScoutService
 		$thread->setText($body);
 		$thread->setCreatedByUser($user);
 
-		$conversation->addThread($thread);
-		$conversationId = $this->helpScout->conversations()->create($conversation);
-		$conversation->setId($conversationId);
+		$this->createThread($conversation, $thread);
+	}
+
+	/**
+	 * @param \HelpScout\Api\Conversations\Conversation $conversation
+	 * @param \HelpScout\Api\Conversations\Threads\Thread $thread
+	 */
+	private function createThread(
+		\HelpScout\Api\Conversations\Conversation $conversation,
+		\HelpScout\Api\Conversations\Threads\Thread $thread
+	): void
+	{
+		if (!$conversation->getId()) {
+			$conversation->addThread($thread);
+			$conversationId = $this->helpScout->conversations()->create($conversation);
+			$conversation->setId($conversationId);
+		} else {
+			$this->helpScout->threads()
+				->create($conversation->getId(), $thread);
+		}
 	}
 }
