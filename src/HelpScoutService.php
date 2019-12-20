@@ -115,4 +115,15 @@ class HelpScoutService
 				->create($conversation->getId(), $thread);
 		}
 	}
+
+	/**
+	 * @param int $conversationId
+	 */
+	public function deleteConversation(int $conversationId): void
+	{
+		try {
+			$this->helpScout->conversations()->delete($conversationId);
+		} catch (\HelpScout\Api\Exception\Exception $e) {
+		}
+	}
 }
