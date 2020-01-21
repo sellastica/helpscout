@@ -26,18 +26,12 @@ class HelpScoutService
 	 * @param int $mailboxId
 	 * @param string $subject
 	 * @param string $email
-	 * @param string|null $firstName
-	 * @param string|null $lastName
-	 * @param string|null $phone
 	 * @return \HelpScout\Api\Conversations\Conversation
 	 */
 	public function createConversation(
 		int $mailboxId,
 		string $subject,
-		string $email,
-		string $firstName = null,
-		string $lastName = null,
-		string $phone = null
+		string $email
 	): \HelpScout\Api\Conversations\Conversation
 	{
 		$conversation = new \HelpScout\Api\Conversations\Conversation();
@@ -47,13 +41,7 @@ class HelpScoutService
 		$conversation->setMailboxId($mailboxId);
 
 		$customer = new \HelpScout\Api\Customers\Customer();
-		$customer->setFirstName($firstName);
-		$customer->setLastName($lastName);
 		$customer->addEmail($email);
-		if ($phone) {
-			$customer->addPhone($phone);
-		}
-
 		$conversation->setCustomer($customer);
 		$conversation->setCreatedByCustomer($customer);
 
@@ -70,10 +58,13 @@ class HelpScoutService
 		string $body
 	): void
 	{
+		$customer = $conversation->getCustomer();
+		$this->clearCustomerFields($customer);
+
 		$thread = new \HelpScout\Api\Conversations\Threads\CustomerThread();
-		$thread->setCustomer($conversation->getCustomer());
+		$thread->setCustomer($customer);
 		$thread->setText($body);
-		$thread->setCreatedByCustomer($conversation->getCustomer());
+		$thread->setCreatedByCustomer($customer);
 
 		$this->createThread($conversation, $thread);
 	}
@@ -90,7 +81,11 @@ class HelpScoutService
 		$user = new \HelpScout\Api\Users\User();
 		$user->setId($this->parameters['user_id']);
 
-		$thread = new \HelpScout\Api\Conversations\Threads\CustomerThread();
+		$customer = $conversation->getCustomer();
+		$this->clearCustomerFields($customer);
+
+		$thread = new \HelpScout\Api\Conversations\Threads\ReplyThread();
+		$thread->setCustomer($customer);
 		$thread->setText($body);
 		$thread->setCreatedByUser($user);
 
@@ -123,7 +118,38 @@ class HelpScoutService
 	{
 		try {
 			$this->helpScout->conversations()->delete($conversationId);
+		} catch (\HelpScout\Api\Exception\Exception | \GuzzleHttp\Exception\ServerException $e) {
+		}
+	}
+
+	/**
+	 * @param int $conversationId
+	 * @return string|null
+	 */
+	public function getCustomerEmail(int $conversationId): ?string
+	{
+		try {
+			$conversation = $this->helpScout->conversations()->get($conversationId);
+			if ($conversation->getCustomer()) {
+				return $conversation->getCustomer()->getFirstEmail();
+			}
 		} catch (\HelpScout\Api\Exception\Exception $e) {
 		}
+
+		return null;
+	}
+
+	/**
+	 * @param \HelpScout\Api\Customers\Customer $customer
+	 */
+	private function clearCustomerFields(\HelpScout\Api\Customers\Customer $customer): void
+	{
+		$customer->setGender(null);
+		$customer->setJobTitle(null);
+		$customer->setLocation(null);
+		$customer->setOrganization(null);
+		$customer->setPhotoType(null);
+		$customer->setPhotoUrl(null);
+		$customer->setBackground(null);
 	}
 }
